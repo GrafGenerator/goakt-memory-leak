@@ -1,6 +1,6 @@
 module goakt-memory-leak-1
 
-go 1.24.4
+go 1.25.1
 
 require (
 	github.com/tochemey/goakt/v3 v3.9.2

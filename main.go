@@ -16,6 +16,7 @@ import (
 
 const (
 	ActorsCount = 10000
+	ClusterMode = true
 )
 
 type Actor1 struct {
@@ -48,38 +49,42 @@ func main() {
 	ctx := context.Background()
 	logger := log.New(log.InfoLevel, os.Stdout)
 
-	staticConfig := static.Config{
-		Hosts: []string{
-			"localhost:3322",
-		},
+	var actorSystem goakt.ActorSystem
+	var err error
+	if ClusterMode {
+		staticConfig := static.Config{
+			Hosts: []string{
+				"localhost:3322",
+			},
+		}
+
+		discovery := static.NewDiscovery(&staticConfig)
+
+		clusterConfig := goakt.
+			NewClusterConfig().
+			WithDiscovery(discovery).
+			WithPartitionCount(20).
+			WithMinimumPeersQuorum(1).
+			WithReplicaCount(1).
+			WithDiscoveryPort(3322).
+			WithPeersPort(3320).
+			WithKinds(new(Actor1))
+
+		actorSystem, err = goakt.NewActorSystem("memleak1",
+			goakt.WithLogger(logger),
+			goakt.WithActorInitMaxRetries(1),
+			goakt.WithShutdownTimeout(10),
+			goakt.WithRemote(remote.NewConfig("localhost", 50022)),
+			goakt.WithCluster(clusterConfig),
+		)
+	} else {
+		actorSystem, err = goakt.NewActorSystem("memleak1",
+			goakt.WithLogger(logger),
+			goakt.WithActorInitMaxRetries(1),
+			goakt.WithShutdownTimeout(10),
+		)
 	}
 
-	discovery := static.NewDiscovery(&staticConfig)
-
-	clusterConfig := goakt.
-		NewClusterConfig().
-		WithDiscovery(discovery).
-		WithPartitionCount(20).
-		WithMinimumPeersQuorum(1).
-		WithReplicaCount(1).
-		WithDiscoveryPort(3322).
-		WithPeersPort(3320).
-		WithKinds(new(Actor1))
-
-	//actorSystem, err := goakt.NewActorSystem(
-	//	BenefitActorsSystemName,
-	//	goakt.WithLogger(NewGoaktZerologAdapter(a.logger)),
-	//	goakt.WithActorInitMaxRetries(3),
-	//	goakt.WithRemote(remote.NewConfig(host, a.config.Actors.RemotingPort)),
-	//	goakt.WithCluster(clusterConfig))
-
-	actorSystem, err := goakt.NewActorSystem("memleak1",
-		goakt.WithLogger(logger),
-		goakt.WithActorInitMaxRetries(1),
-		goakt.WithShutdownTimeout(10),
-		goakt.WithRemote(remote.NewConfig("localhost", 50022)),
-		goakt.WithCluster(clusterConfig),
-	)
 	if err != nil {
 		panic(err)
 	}
