@@ -1,0 +1,8 @@
+syntax = "proto3";
+package proto;
+
+option go_package = "goakt_memory_leak_1/internal/messages";
+
+message HelloMsg {
+  string text = 1;
+}
